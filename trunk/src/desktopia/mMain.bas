@@ -1,9 +1,27 @@
 Attribute VB_Name = "mMain"
 Option Explicit
 
+Public Const CLASS_NAME = "w>desktopia"
+
 Public gWindow As CBackdrop
 
 Public Sub Main()
+Dim hWndExisting As Long
+
+    hWndExisting = FindWindow(CLASS_NAME, CLASS_NAME)
+
+    If (Command$ = "-quit") Then
+        ' /* quit any existing instance (but don't run this one) */
+        If IsWindow(hWndExisting) <> 0 Then _
+            SendMessage hWndExisting, WM_CLOSE, 0, ByVal 0&
+
+        Exit Sub
+
+    ElseIf hWndExisting <> 0 Then
+        MsgBox "Desktopia is already running", vbInformation Or vbOKOnly, App.Title
+        Exit Sub
+
+    End If
 
     Set gWindow = New CBackdrop
 
