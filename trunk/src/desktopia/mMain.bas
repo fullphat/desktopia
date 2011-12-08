@@ -10,15 +10,13 @@ Dim hWndExisting As Long
 
     hWndExisting = FindWindow(CLASS_NAME, CLASS_NAME)
 
-    If (Command$ = "-quit") Then
-        ' /* quit any existing instance (but don't run this one) */
-        If IsWindow(hWndExisting) <> 0 Then _
-            SendMessage hWndExisting, WM_CLOSE, 0, ByVal 0&
-
+    If IsWindow(hWndExisting) <> 0 Then
+        ' /* if a previous instance is running, close it and quit */
+        SendMessage hWndExisting, WM_CLOSE, 0, ByVal 0&
         Exit Sub
 
-    ElseIf hWndExisting <> 0 Then
-        MsgBox "Desktopia is already running", vbInformation Or vbOKOnly, App.Title
+    ElseIf Command$ = "-quit" Then
+        ' /* otherwise if -quit was specified, just quit */
         Exit Sub
 
     End If
@@ -30,7 +28,7 @@ Dim hWndExisting As Long
 
     End With
 
-    Unload frmAbout
+'    Unload frmAbout
     Set gWindow = Nothing
 
 End Sub

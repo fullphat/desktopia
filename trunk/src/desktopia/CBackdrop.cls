@@ -60,7 +60,7 @@ Dim rc As RECT
 
     Set mView = New mfxView
     With mView
-        .SizeTo g_ScreenWidth, g_ScreenHeight '(rc.Right - rc.Left), (rc.Bottom - rc.Top)
+        .SizeTo g_ScreenWidth, g_ScreenHeight     '(rc.Right - rc.Left), (rc.Bottom - rc.Top)
         .EnableSmoothing False
 
     End With
@@ -137,8 +137,14 @@ Dim pmi As OMMenuItem
 
     Case WM_PAINT
         hDC = BeginPaint(hWnd, pps)
-        If NOTNULL(mView) Then _
+
+        If mGeneral.GetValueWithDefault("type") = "4" Then
+            PaintDesktop hDC
+        
+        ElseIf NOTNULL(mView) Then
             draw_view mView, hDC
+
+        End If
 
         EndPaint hWnd, pps
         ReturnValue = 0
@@ -163,6 +169,8 @@ Dim sz As String
     End If
 
     sz = mGeneral.GetValueWithDefault("type")
+    If sz = "4" Then _
+        Exit Sub
 
     With mView
         Select Case sz
@@ -195,6 +203,10 @@ Dim sz As String
                 .DrawString "Image '" & sz & "' could not be loaded", .Bounds.InsetByCopy(16, 48)
 
             Else
+
+                .SetHighColour g_SafeLong(mGeneral.GetValueWithDefault("col1"))
+                .FillRect .Bounds
+
                 Select Case mGeneral.GetValueWithDefault("image-pos")
                 Case "1"
                     '/ * centre */
@@ -202,6 +214,7 @@ Dim sz As String
 
                 Case "2"
                     ' /* tile */
+                    uTileBitmap mView, pb
 
                 Case "3"
                     ' /* scale */
@@ -297,6 +310,18 @@ Private Sub KPrefsPage_ControlChanged(Control As prefs_kit_d2.BControl, ByVal Va
     Debug.Print Control.GetName
 
     Select Case Control.GetName
+    Case "type"
+        prefskit_SafeEnable thePanel, "col2", (Value = "2")
+        prefskit_SafeEnable thePanel, "image-file", (Value = "3")
+        prefskit_SafeEnable thePanel, "use_random_pic", (Value = "3")
+        prefskit_SafeEnable thePanel, "image-pos", (Value = "3")
+        prefskit_SafeEnable thePanel, "change_pic", (mGeneral.GetValueWithDefault("type") = "3") And (mGeneral.GetValueWithDefault("use_random_pic") = "1")
+
+    Case "use_random_pic"
+        prefskit_SafeEnable thePanel, "change_pic", (mGeneral.GetValueWithDefault("type") = "3") And (mGeneral.GetValueWithDefault("use_random_pic") = "1")
+        If Value = "1" Then _
+            mImageToUse = uGetRandomFile(mGeneral.GetValueWithDefault("image-file"))
+
     Case "go_site", "change_pic"
         Exit Sub
 
@@ -305,17 +330,6 @@ Private Sub KPrefsPage_ControlChanged(Control As prefs_kit_d2.BControl, ByVal Va
     mGeneral.Update Control.GetName, Value
     mConfig.Save
     uSync
-
-
-    Select Case Control.GetName
-    Case "type"
-        
-        prefskit_SafeEnable thePanel, "col2", (Value = "2")
-        prefskit_SafeEnable thePanel, "image-file", (Value = "3")
-        prefskit_SafeEnable thePanel, "use_random_pic", (Value = "3")
-        prefskit_SafeEnable thePanel, "image-pos", (Value = "3")
-        
-    End Select
 
 End Sub
 
@@ -326,8 +340,7 @@ Private Sub KPrefsPage_ControlInvoked(Control As prefs_kit_d2.BControl)
         ShellExecute mhWnd, "open", "http://www.fullphat.net", vbNullString, vbNullString, SW_SHOW
 
     Case "change_pic"
-        mImageToUse = uGetRandomFile(mGeneral.GetValueWithDefault("image-file"))
-        uSync
+        uGetRandomPic
 
     End Select
 
@@ -391,7 +404,7 @@ Dim pm As CTempMsg
                 ' /* launch options */
 
                 .Add new_BPrefsControl("banner", "", "Background")
-                .Add new_BPrefsControl("fancycycle", "type", "Solid|Gradient|Image", "Type:", mGeneral.GetValueWithDefault("type"))
+                .Add new_BPrefsControl("fancycycle", "type", "Solid|Gradient|Image|Desktop", "Type:", mGeneral.GetValueWithDefault("type"))
                 .Add new_BPrefsControl("fancycolourpicker", "col1", , "Primary colour:", mGeneral.GetValueWithDefault("col1"))
                 .Add new_BPrefsControl("fancycolourpicker", "col2", , "Secondary colour:", mGeneral.GetValueWithDefault("col2"), , (mGeneral.GetValueWithDefault("type") = "2"))
                 .Add new_BPrefsControl("fancyfilepicker", "image-file", mGeneral.GetValueWithDefault("image-file"), "Image:", , , (mGeneral.GetValueWithDefault("type") = "3"))
@@ -566,5 +579,36 @@ Private Sub uSync()
 
     uRedraw
     g_UpdateWindow mhWnd, False
+
+End Sub
+
+Private Sub uTileBitmap(ByRef aView As mfxView, ByRef aPic As mfxBitmap)
+Dim dx As Long
+Dim dy As Long
+
+    dx = ROUNDUP(aView.Width / aPic.Width) - 1
+    dy = ROUNDUP(aView.Height / aPic.Height) - 1
+
+Dim pt As BPoint
+Dim i As Long
+Dim j As Long
+
+    Debug.Print "tile: " & dx & "x" & dy
+
+    For j = 0 To dy
+        Set pt = new_BPoint(0, j * aPic.Height)
+        For i = 0 To dx
+            aView.DrawScaledImage aPic, pt
+            pt.OffsetBy aPic.Width, 0
+
+        Next i
+    Next j
+
+End Sub
+
+Private Sub uGetRandomPic()
+
+    mImageToUse = uGetRandomFile(mGeneral.GetValueWithDefault("image-file"))
+    uSync
 
 End Sub
