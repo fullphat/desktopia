@@ -1,0 +1,1 @@
+Desktopia is a tiny utility which displays a clean window over your desktop with a picture or background of your choice - just the ticket when you want to take a screenshot but don't want people seeing your icons!
